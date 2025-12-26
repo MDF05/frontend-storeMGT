@@ -126,17 +126,20 @@ const formatCurrency = (value) => {
         >
           <div class="product-info">
             <h3>{{ product.name }}</h3>
-            <p class="sku">{{ product.sku }}</p>
+            <div class="card-sku-stock">
+                <p class="sku">{{ product.sku }} </p>
+                <div class="stat-item stock-tag">
+                    <span class="icon">📦</span>
+                    <span>{{ product.stock_quantity }}</span>
+                </div>
+            </div>
             
             <div class="stats-row">
                 <div class="stat-item price-tag">
                     <span class="icon">🏷️</span>
                     <span>{{ formatCurrency(product.price) }}</span>
                 </div>
-                <div class="stat-item stock-tag">
-                    <span class="icon">📦</span>
-                    <span>{{ product.stock_quantity }}</span>
-                </div>
+                
             </div>
           </div>
         </div>
@@ -213,6 +216,12 @@ const formatCurrency = (value) => {
 </template>
 
 <style scoped>
+
+.card-sku-stock {
+    display: flex;
+    justify-content: space-between;
+}
+
 .pos-container {
     display: flex;
     gap: 2rem;
