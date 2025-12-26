@@ -61,7 +61,8 @@ export const exportToPDF = (filename, title, columns, data, storeConfig, footerT
         // Line for signature
         doc.line(rightMargin - 40, signatureY + 35, rightMargin, signatureY + 35);
 
-        doc.text("( .................... )", rightMargin - 20, signatureY + 40, { align: 'center' });
+        const picName = storeConfig?.picName || 'Manager';
+        doc.text(`( ${picName} )`, rightMargin - 20, signatureY + 40, { align: 'center' });
 
         // Save
         doc.save(`${filename}.pdf`);

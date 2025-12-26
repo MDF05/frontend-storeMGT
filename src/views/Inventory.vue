@@ -27,11 +27,44 @@ const newCategory = ref('');
 const showRestockModal = ref(false);
 const showEditModal = ref(false);
 const showHistoryModal = ref(false);
+const showBulkModal = ref(false);
+const bulkProducts = ref([
+    { name: '', sku: '', category_id: '', price: 0, stock_quantity: 0, low_stock_threshold: 10 }
+]);
+
 const productHistory = ref([]);
 const selectedProductHistory = ref(null);
 
 const restockItem = ref({ id: null, name: '', current_stock: 0, add_quantity: 0 });
 const editItem = ref({ id: null, name: '', sku: '', price: 0, stock_quantity: 0, low_stock_threshold: 10, category_id: '' });
+
+const addBulkRow = () => {
+    bulkProducts.value.push({ name: '', sku: '', category_id: '', price: 0, stock_quantity: 0, low_stock_threshold: 10 });
+};
+
+const removeBulkRow = (index) => {
+    if (bulkProducts.value.length > 1) {
+        bulkProducts.value.splice(index, 1);
+    }
+};
+
+const handleBulkAdd = async () => {
+    try {
+        // Basic validation
+        for (const p of bulkProducts.value) {
+            if (!p.name || !p.sku || !p.category_id) {
+                alert('Please fill in all required fields (Name, SKU, Category) for all rows.');
+                return;
+            }
+        }
+        await productStore.addProductsBulk(bulkProducts.value);
+        showBulkModal.value = false;
+        bulkProducts.value = [{ name: '', sku: '', category_id: '', price: 0, stock_quantity: 0, low_stock_threshold: 10 }]; // Reset
+        alert('Products added successfully!');
+    } catch (err) {
+        alert('Failed to add products: ' + err.message);
+    }
+};
 
 const formatCurrency = (value) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(value);
@@ -172,6 +205,7 @@ const submitRestock = async () => {
       <div class="actions">
         <button @click="exportInventory" class="btn-primary" style="background: var(--text-muted)">📄 Export PDF</button>
         <button @click="showCategoryModal = true" class="btn-primary" style="background: var(--secondary)">+ Add Category</button>
+        <button @click="showBulkModal = true" class="btn-primary" style="background: #8b5cf6">++ Bulk Add</button>
         <button @click="showModal = true" class="btn-primary">+ Add Product</button>
       </div>
     </div>
@@ -365,6 +399,49 @@ const submitRestock = async () => {
       </div>
     </div>
 
+    <!-- Bulk Add Modal -->
+    <div v-if="showBulkModal" class="modal-overlay">
+        <div class="modal glass-panel wide-modal" style="width: 900px;">
+            <h2>Bulk Add Products</h2>
+            <div class="bulk-container">
+                <table class="simple-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>SKU</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(item, index) in bulkProducts" :key="index">
+                            <td><input v-model="item.name" class="glass-input small-input" placeholder="Name" required /></td>
+                            <td><input v-model="item.sku" class="glass-input small-input" placeholder="SKU" required /></td>
+                            <td>
+                                <select v-model="item.category_id" class="glass-input small-input" required>
+                                    <option value="" disabled>Select</option>
+                                    <option v-for="cat in productStore.categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                                </select>
+                            </td>
+                            <td><input type="number" v-model="item.price" class="glass-input small-input" placeholder="0" required /></td>
+                            <td><input type="number" v-model="item.stock_quantity" class="glass-input small-input" placeholder="0" required /></td>
+                            <td>
+                                <button type="button" @click="removeBulkRow(index)" class="btn-danger small" v-if="bulkProducts.length > 1">X</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button type="button" @click="addBulkRow" class="btn-secondary small mt-2">+ Add Row</button>
+            </div>
+            <div class="modal-actions">
+                <button type="button" @click="showBulkModal = false" class="btn-danger">Cancel</button>
+                <button type="button" @click="handleBulkAdd" class="btn-primary">Save All Products</button>
+            </div>
+        </div>
+    </div>
+
   </div>
 </template>
 
@@ -451,4 +528,7 @@ select.glass-input option {
 .simple-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
 .simple-table th, .simple-table td { padding: 0.5rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
 .history-list { max-height: 400px; overflow-y: auto; }
+.small-input { padding: 4px; font-size: 0.9rem; width: 100%; box-sizing: border-box; }
+.mt-2 { margin-top: 0.5rem; }
+.bulk-container { max-height: 60vh; overflow-y: auto; }
 </style>

@@ -118,6 +118,13 @@ const exportInventoryReport = () => {
 </template>
 
 <style scoped>
+
+.charts-section {
+    margin-top: 2rem;
+    padding-left: 2rem;
+}
+
+
 .report-header {
     display: flex;
     justify-content: space-between;

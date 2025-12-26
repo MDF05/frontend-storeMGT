@@ -42,6 +42,16 @@ export const useProductStore = defineStore('product', {
                 throw err
             }
         },
+        async addProductsBulk(productsArray) {
+            try {
+                const response = await axios.post(`${API_URL}/bulk`, productsArray)
+                this.products.push(...response.data)
+                return response.data
+            } catch (err) {
+                this.error = err.message
+                throw err
+            }
+        },
         async updateProduct(id, data) {
             try {
                 const response = await axios.put(`${API_URL}/${id}`, data)

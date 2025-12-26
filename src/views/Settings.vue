@@ -15,6 +15,7 @@ onMounted(async () => {
     form.value.storeName = settingsStore.storeName;
     form.value.storeAddress = settingsStore.storeAddress;
     form.value.defaultLowStockThreshold = settingsStore.defaultLowStockThreshold;
+    form.value.picName = settingsStore.picName;
 });
 
 const handleSave = async () => {
@@ -47,6 +48,12 @@ const handleSave = async () => {
                     <label>Store Address (Alamat / Domisili)</label>
                     <textarea v-model="form.storeAddress" class="glass-input" rows="3" required placeholder="e.g. Jakarta, Indonesia"></textarea>
                     <small>Used for PDF Report Header and Signature logic.</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Example PIC (Penanggung Jawab)</label>
+                    <input v-model="form.picName" class="glass-input" required placeholder="e.g. Budi Santoso" />
+                    <small>Name shown in the signature section of PDF reports.</small>
                 </div>
 
                 <div class="form-group">
