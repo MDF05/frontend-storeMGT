@@ -3,6 +3,7 @@ import { onMounted, ref, computed } from 'vue';
 import { useProductStore } from '../stores/product';
 import { useSettingsStore } from '../stores/settings';
 import { exportToPDF } from '../utils/pdfExport';
+import axios from 'axios';
 
 const productStore = useProductStore();
 const settingsStore = useSettingsStore(); // Init settings store
@@ -25,6 +26,10 @@ const newProduct = ref({
 const newCategory = ref('');
 const showRestockModal = ref(false);
 const showEditModal = ref(false);
+const showHistoryModal = ref(false);
+const productHistory = ref([]);
+const selectedProductHistory = ref(null);
+
 const restockItem = ref({ id: null, name: '', current_stock: 0, add_quantity: 0 });
 const editItem = ref({ id: null, name: '', sku: '', price: 0, stock_quantity: 0, low_stock_threshold: 10, category_id: '' });
 
@@ -32,33 +37,72 @@ const formatCurrency = (value) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(value);
 };
 
+const formatDate = (dateStr) => {
+    return new Date(dateStr).toLocaleString('id-ID');
+};
+
+const viewHistory = async (product) => {
+    selectedProductHistory.value = product;
+    try {
+        const res = await axios.get(`http://localhost:5000/api/history/product/${product.id}`);
+        productHistory.value = res.data;
+        showHistoryModal.value = true;
+    } catch (err) {
+        alert('Failed to fetch history');
+    }
+};
+
 onMounted(async () => {
     await productStore.fetchProducts();
     await productStore.fetchCategories();
     await settingsStore.fetchSettings();
     // Set initial default threshold
-    if(settingsStore.settings?.default_low_stock_threshold) {
-        newProduct.value.low_stock_threshold = settingsStore.settings.default_low_stock_threshold;
+    if(settingsStore.defaultLowStockThreshold) {
+        newProduct.value.low_stock_threshold = settingsStore.defaultLowStockThreshold;
     }
 });
 
-const exportInventory = () => {
-    const columns = ['Product Name', 'SKU', 'Category', 'Stock', 'Price'];
-    const data = productStore.products.map(p => [
-        p.name,
-        p.sku,
-        p.category_name,
-        p.stock_quantity,
-        formatCurrency(p.price)
-    ]);
-    exportToPDF('Inventory_Data', 'Product Inventory List', columns, data, settingsStore);
+const exportInventory = async () => {
+    try {
+        const historyRes = await axios.get('http://localhost:5000/api/history/restocks');
+        const restockHistory = historyRes.data;
+
+        const columns = ['Product Name', 'SKU', 'Category', 'Stock', 'Price', 'Last Restocks'];
+        const data = productStore.products.map(p => {
+            // Filter history for this product
+            const pHistory = restockHistory.filter(h => h.product_id === p.id);
+            // Take top 3 most recent
+            const recent = pHistory.slice(0, 3).map(h => 
+                `${formatDate(h.timestamp).split(',')[0]}: +${h.change_amount}`
+            ).join('\n');
+
+            return [
+                p.name,
+                p.sku,
+                p.category_name,
+                p.stock_quantity,
+                formatCurrency(p.price),
+                recent || '-'
+            ];
+        });
+        exportToPDF('Inventory_Data', 'Product Inventory List', columns, data, settingsStore);
+    } catch (err) {
+        console.error(err);
+        alert('Failed to generate report with history. Trying basic export...');
+        // Fallback
+        const columns = ['Product Name', 'SKU', 'Category', 'Stock', 'Price'];
+        const data = productStore.products.map(p => [
+            p.name, p.sku, p.category_name, p.stock_quantity, formatCurrency(p.price)
+        ]);
+        exportToPDF('Inventory_Data', 'Product Inventory List', columns, data, settingsStore);
+    }
 };
 
 const handleAddProduct = async () => {
     await productStore.addProduct(newProduct.value);
     showModal.value = false;
     // Reset form with default threshold from settings
-    const defaultThreshold = settingsStore.settings?.default_low_stock_threshold || 10;
+    const defaultThreshold = settingsStore.defaultLowStockThreshold || 10;
     newProduct.value = { 
         name: '', 
         sku: '', 
@@ -159,6 +203,7 @@ const submitRestock = async () => {
             <td>
                 <button class="small btn-primary" @click="openEdit(product)">Edit</button>
                 <button class="small btn-warning" @click="openRestock(product)">Restock</button>
+                <button class="small btn-secondary text-black" @click="viewHistory(product)">History</button>
                 <button class="btn-danger small" @click="deleteProduct(product.id)">Delete</button>
             </td>
           </tr>
@@ -270,6 +315,39 @@ const submitRestock = async () => {
       </div>
     </div>
 
+    <!-- Stock History Modal -->
+    <div v-if="showHistoryModal" class="modal-overlay">
+        <div class="modal glass-panel wide-modal">
+            <h2>Stock History: {{ selectedProductHistory?.name }}</h2>
+            <div class="history-list">
+                <div v-if="productHistory.length === 0">No history found.</div>
+                <table v-else class="simple-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Change</th>
+                            <th>Note</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="h in productHistory" :key="h.id">
+                            <td>{{ formatDate(h.timestamp) }}</td>
+                            <td><span class="badge" :class="h.change_type">{{ h.change_type.toUpperCase() }}</span></td>
+                            <td :class="h.change_amount > 0 ? 'text-green' : 'text-red'">
+                                {{ h.change_amount > 0 ? '+' : '' }}{{ h.change_amount }}
+                            </td>
+                            <td>{{ h.note }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-actions">
+                <button @click="showHistoryModal = false" class="btn-primary">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Category Modal -->
     <div v-if="showCategoryModal" class="modal-overlay">
       <div class="modal glass-panel">
@@ -362,4 +440,15 @@ select.glass-input option {
 }
 .small { padding: 4px 8px; font-size: 0.8rem; margin-right: 5px; }
 .alert-icon { margin-left: 5px; font-size: 0.8rem; }
+.wide-modal { width: 700px; max-width: 90vw; }
+.text-green { color: #4ade80; font-weight: bold; }
+.text-red { color: #f87171; font-weight: bold; }
+.text-white { color: white !important; }
+.badge { padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; background: #334155; color: white; }
+.badge.restock { background: #10b981; } /* Green */
+.badge.sale { background: #3b82f6; } /* Blue */
+.badge.correction { background: #f59e0b; } /* Orange */
+.simple-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+.simple-table th, .simple-table td { padding: 0.5rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.history-list { max-height: 400px; overflow-y: auto; }
 </style>
