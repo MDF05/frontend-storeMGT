@@ -30,6 +30,9 @@ const showSidebar = computed(() => !['login', 'register'].includes(route.name))
           <RouterLink to="/pos" class="nav-link" active-class="active">
             <span>💳</span> Point of Sale
           </RouterLink>
+          <RouterLink to="/tracking" class="nav-link" active-class="active">
+            <span>🔍</span> Tracking
+          </RouterLink>
           <RouterLink to="/customers" class="nav-link" active-class="active">
             <span>👥</span> Customers
           </RouterLink>

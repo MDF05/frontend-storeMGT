@@ -54,6 +54,12 @@ const router = createRouter({
             name: 'settings',
             component: () => import('../views/Settings.vue'),
             meta: { requiresAuth: true }
+        },
+        {
+            path: '/tracking',
+            name: 'tracking',
+            component: () => import('../views/ProductTracking.vue'),
+            meta: { requiresAuth: true }
         }
     ]
 })
