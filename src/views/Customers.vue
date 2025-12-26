@@ -1,9 +1,13 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import axios from 'axios';
+import { useSettingsStore } from '../stores/settings';
+import { exportToPDF } from '../utils/pdfExport';
 
+const settingsStore = useSettingsStore();
 const customers = ref([]);
 const showModal = ref(false);
+const showAdjustDebtModal = ref(false);
 const newCustomer = ref({ name: '', email: '', phone: '' });
 
 const fetchCustomers = async () => {
@@ -40,6 +44,7 @@ const showPaymentModal = ref(false);
 const showHistoryModal = ref(false);
 const selectedCustomer = ref({});
 const paymentAmount = ref(0);
+const debtAdjustment = ref({ amount: 0, description: '' });
 const debtHistory = ref([]);
 
 const openPayment = (c) => {
@@ -61,6 +66,41 @@ const submitPayment = async () => {
     }
 };
 
+
+
+const formatCurrency = (value) => {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(value);
+};
+
+const shareDebt = (c) => {
+    const text = `Halo ${c.name}, sisa hutang Anda di Toko adalah ${formatCurrency(c.total_debt)}. Mohon segera dilunasi. Terima kasih.`;
+    navigator.clipboard.writeText(text).then(() => alert('Debt info copied to clipboard!'));
+};
+
+const shareAllDebts = () => {
+    const debitors = customers.value.filter(c => c.total_debt > 0);
+    if (debitors.length === 0) return alert('No customers with debt.');
+    
+    let text = "DAFTAR HUTANG PELANGGAN:\n\n";
+    debitors.forEach(c => {
+        text += `- ${c.name}: ${formatCurrency(c.total_debt)}\n`;
+    });
+    
+    navigator.clipboard.writeText(text).then(() => alert('All debts copied to clipboard!'));
+};
+
+const exportCustomers = () => {
+    const columns = ['Name', 'Email', 'Phone', 'Points', 'Total Debt'];
+    const data = customers.value.map(c => [
+        c.name,
+        c.email || '-',
+        c.phone || '-',
+        c.points,
+        formatCurrency(c.total_debt || 0)
+    ]);
+    exportToPDF('Customer_Report', 'Customer Report', columns, data, settingsStore);
+};
+
 const viewHistory = async (c) => {
     selectedCustomer.value = c;
     try {
@@ -72,14 +112,41 @@ const viewHistory = async (c) => {
     }
 };
 
-onMounted(fetchCustomers);
+const openAdjustDebt = (c) => {
+    selectedCustomer.value = c;
+    debtAdjustment.value = { amount: c.total_debt, description: 'Manual Adjustment' };
+    showAdjustDebtModal.value = true;
+};
+
+const submitDebtAdjustment = async () => {
+    try {
+        await axios.post(`http://localhost:5000/api/customers/${selectedCustomer.value.id}/adjust_debt`, {
+            new_debt: debtAdjustment.value.amount,
+            description: debtAdjustment.value.description
+        });
+        alert('Debt Updated');
+        showAdjustDebtModal.value = false;
+        fetchCustomers();
+    } catch (err) {
+        alert(err.response?.data?.error || 'Update failed');
+    }
+};
+
+onMounted(async () => {
+    fetchCustomers();
+    await settingsStore.fetchSettings();
+});
 </script>
 
 <template>
   <div class="customers fade-in">
     <div class="header">
       <h1>Customer Management (CRM)</h1>
-      <button @click="showModal = true" class="btn-primary">+ Add Customer</button>
+      <div class="header-actions">
+           <button @click="exportCustomers" class="btn-primary small" style="background: var(--text-muted)">📄 Export PDF</button>
+           <button @click="shareAllDebts" class="btn-warning">📋 Copy All Debts</button>
+           <button @click="showModal = true" class="btn-primary">+ Add Customer</button>
+      </div>
     </div>
 
     <div class="glass-panel table-container">
@@ -87,28 +154,36 @@ onMounted(fetchCustomers);
         <thead>
           <tr>
             <th>Name</th>
-            <th>Email</th>
-            <th>Phone</th>
+            <th>Contact</th>
             <th>Points</th>
-            <th>Total Debt</th>
-            <th>Actions</th>
+            <th>Total Debt (IDR)</th>
+            <th>Actions / Manage</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="c in customers" :key="c.id">
             <td>{{ c.name }}</td>
-            <td>{{ c.email }}</td>
-            <td>{{ c.phone }}</td>
+            <td>
+                <div>{{ c.email }}</div>
+                <small>{{ c.phone }}</small>
+            </td>
             <td><span class="badge">{{ c.points }}</span></td>
             <td>
                 <span :class="{'text-red': c.total_debt > 0, 'text-green': c.total_debt <= 0}">
-                    ${{ c.total_debt || 0 }}
+                    {{ formatCurrency(c.total_debt || 0) }}
                 </span>
             </td>
             <td class="actions-cell">
-                <button class="small" @click="viewHistory(c)">History</button>
-                <button v-if="c.total_debt > 0" class="small btn-primary" @click="openPayment(c)">Pay</button>
-                <button class="btn-danger small" @click="deleteCustomer(c.id)">Delete</button>
+                 <!-- Transaction Actions -->
+                 <button v-if="c.total_debt > 0" class="small btn-primary" @click="openPayment(c)">Pay</button>
+                 <button class="small btn-warning" @click="openAdjustDebt(c)">Adjust</button>
+                 
+                 <!-- Social Actions -->
+                 <button v-if="c.total_debt > 0" class="small btn-secondary" @click="shareDebt(c)">Share</button>
+                 
+                 <!-- Manage Actions -->
+                 <button class="small" @click="viewHistory(c)">History</button>
+                 <button class="btn-danger small" @click="deleteCustomer(c.id)">Delete</button>
             </td>
           </tr>
         </tbody>
@@ -145,7 +220,9 @@ onMounted(fetchCustomers);
         <div class="modal glass-panel">
             <h2>Record Payment</h2>
             <p>Customer: {{ selectedCustomer.name }}</p>
-            <p>Current Debt: ${{ selectedCustomer.total_debt }}</p>
+            <h2>Record Payment</h2>
+            <p>Customer: {{ selectedCustomer.name }}</p>
+            <p>Current Debt: {{ formatCurrency(selectedCustomer.total_debt) }}</p>
             
             <div class="form-group">
                 <label>Payment Amount</label>
@@ -172,7 +249,8 @@ onMounted(fetchCustomers);
                     </div>
                     <div class="row">
                         <small>{{ rec.description }}</small>
-                        <strong>${{ rec.amount }}</strong>
+                        <small>{{ rec.description }}</small>
+                        <strong>{{ formatCurrency(rec.amount) }}</strong>
                     </div>
                 </div>
             </div>
@@ -181,11 +259,34 @@ onMounted(fetchCustomers);
             </div>
         </div>
     </div>
+
+    <!-- Adjust Debt Modal -->
+    <div v-if="showAdjustDebtModal" class="modal-overlay">
+        <div class="modal glass-panel">
+            <h2>Adjust Customer Debt</h2>
+            <p>Customer: {{ selectedCustomer.name }}</p>
+            
+            <div class="form-group">
+                <label>New Total Debt Amount</label>
+                <input type="number" v-model="debtAdjustment.amount" class="glass-input" step="0.01" />
+            </div>
+            <div class="form-group">
+                <label>Reason / Description</label>
+                <input type="text" v-model="debtAdjustment.description" class="glass-input" />
+            </div>
+            
+            <div class="modal-actions">
+                <button @click="showAdjustDebtModal = false" class="btn-danger">Cancel</button>
+                <button @click="submitDebtAdjustment" class="btn-warning">Update Debt</button>
+            </div>
+        </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.header { display: flex; justify-content: space-between; margin-bottom: 2rem; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+.header-actions { display: flex; gap: 1rem; }
 .badge { background: var(--secondary); padding: 2px 8px; border-radius: 12px; font-size: 0.9rem; color: #000; font-weight: bold; }
 .small { padding: 4px 8px; font-size: 0.8rem; }
 /* Reuse table/modal styles from Inventory or Global */

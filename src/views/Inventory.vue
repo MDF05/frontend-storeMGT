@@ -1,8 +1,11 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue';
 import { useProductStore } from '../stores/product';
+import { useSettingsStore } from '../stores/settings';
+import { exportToPDF } from '../utils/pdfExport';
 
 const productStore = useProductStore();
+const settingsStore = useSettingsStore(); // Init settings store
 const showModal = ref(false);
 const showCategoryModal = ref(false);
 
@@ -11,20 +14,74 @@ const newProduct = ref({
     sku: '',
     price: 0,
     stock_quantity: 0,
+    low_stock_threshold: 10,
     category_id: ''
 });
 
+// Watch for settings changes to update the default for new products (optional, but good for UX)
+// We will just ensure it's set correctly when opening the modal or after fetch
+
+
 const newCategory = ref('');
+const showRestockModal = ref(false);
+const showEditModal = ref(false);
+const restockItem = ref({ id: null, name: '', current_stock: 0, add_quantity: 0 });
+const editItem = ref({ id: null, name: '', sku: '', price: 0, stock_quantity: 0, low_stock_threshold: 10, category_id: '' });
+
+const formatCurrency = (value) => {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(value);
+};
 
 onMounted(async () => {
     await productStore.fetchProducts();
     await productStore.fetchCategories();
+    await settingsStore.fetchSettings();
+    // Set initial default threshold
+    if(settingsStore.settings?.default_low_stock_threshold) {
+        newProduct.value.low_stock_threshold = settingsStore.settings.default_low_stock_threshold;
+    }
 });
+
+const exportInventory = () => {
+    const columns = ['Product Name', 'SKU', 'Category', 'Stock', 'Price'];
+    const data = productStore.products.map(p => [
+        p.name,
+        p.sku,
+        p.category_name,
+        p.stock_quantity,
+        formatCurrency(p.price)
+    ]);
+    exportToPDF('Inventory_Data', 'Product Inventory List', columns, data, settingsStore);
+};
 
 const handleAddProduct = async () => {
     await productStore.addProduct(newProduct.value);
     showModal.value = false;
-    newProduct.value = { name: '', sku: '', price: 0, stock_quantity: 0, category_id: '' };
+    // Reset form with default threshold from settings
+    const defaultThreshold = settingsStore.settings?.default_low_stock_threshold || 10;
+    newProduct.value = { 
+        name: '', 
+        sku: '', 
+        price: 0, 
+        stock_quantity: 0, 
+        low_stock_threshold: defaultThreshold, 
+        category_id: '' 
+    };
+    await productStore.fetchProducts();
+};
+
+const openEdit = (product) => {
+    editItem.value = { ...product };
+    // ensure threshold exists or default to 10
+    if (!editItem.value.low_stock_threshold) editItem.value.low_stock_threshold = 10;
+    showEditModal.value = true;
+};
+
+const handleEditProduct = async () => {
+    await productStore.updateProduct(editItem.value.id, editItem.value);
+    showEditModal.value = false;
+    // Refresh products to show updates
+    await productStore.fetchProducts();
 };
 
 const handleAddCategory = async () => {
@@ -38,6 +95,30 @@ const deleteProduct = async (id) => {
         await productStore.deleteProduct(id);
     }
 };
+
+const openRestock = (product) => {
+    restockItem.value = {
+        id: product.id,
+        name: product.name,
+        current_stock: product.stock_quantity,
+        add_quantity: 0
+    };
+    showRestockModal.value = true;
+};
+
+const submitRestock = async () => {
+    try {
+        const newStock = restockItem.value.current_stock + parseInt(restockItem.value.add_quantity);
+        await productStore.updateProduct(restockItem.value.id, {
+            stock_quantity: newStock
+        });
+        showRestockModal.value = false;
+        await productStore.fetchProducts(); // Refresh to update alert icons based on new stock/threshold
+        alert('Stock updated!');
+    } catch (err) {
+        alert('Failed to update stock');
+    }
+};
 </script>
 
 <template>
@@ -45,6 +126,7 @@ const deleteProduct = async (id) => {
     <div class="header">
       <h1>Inventory Management</h1>
       <div class="actions">
+        <button @click="exportInventory" class="btn-primary" style="background: var(--text-muted)">📄 Export PDF</button>
         <button @click="showCategoryModal = true" class="btn-primary" style="background: var(--secondary)">+ Add Category</button>
         <button @click="showModal = true" class="btn-primary">+ Add Product</button>
       </div>
@@ -68,10 +150,16 @@ const deleteProduct = async (id) => {
             <td>{{ product.name }}</td>
             <td>{{ product.sku }}</td>
             <td>{{ product.category_name }}</td>
-            <td>${{ product.price }}</td>
-            <td :class="{'low-stock': product.stock_quantity < 10}">{{ product.stock_quantity }}</td>
+            <td>{{ product.category_name }}</td>
+            <td>{{ formatCurrency(product.price) }}</td>
+            <td :class="{'low-stock': product.stock_quantity <= (product.low_stock_threshold || 10)}">
+                {{ product.stock_quantity }}
+                <span v-if="product.stock_quantity <= (product.low_stock_threshold || 10)" class="alert-icon">⚠️</span>
+            </td>
             <td>
-                <button class="btn-danger" @click="deleteProduct(product.id)">Delete</button>
+                <button class="small btn-primary" @click="openEdit(product)">Edit</button>
+                <button class="small btn-warning" @click="openRestock(product)">Restock</button>
+                <button class="btn-danger small" @click="deleteProduct(product.id)">Delete</button>
             </td>
           </tr>
           <tr v-if="productStore.products.length === 0">
@@ -110,9 +198,73 @@ const deleteProduct = async (id) => {
                     <input type="number" v-model="newProduct.stock_quantity" class="glass-input" required />
                 </div>
             </div>
+            <div class="form-group">
+                <label>Stock Warning Limit</label>
+                <input type="number" v-model="newProduct.low_stock_threshold" class="glass-input" required />
+            </div>
+
             <div class="modal-actions">
                 <button type="button" @click="showModal = false" class="btn-danger">Cancel</button>
                 <button type="submit" class="btn-primary">Save Product</button>
+            </div>
+        </form>
+      </div>
+    </div>
+
+
+
+    <!-- Restock Modal -->
+    <div v-if="showRestockModal" class="modal-overlay">
+        <div class="modal glass-panel">
+            <h2>Restock Product</h2>
+            <p>Product: <strong>{{ restockItem.name }}</strong></p>
+            <p>Current Stock: {{ restockItem.current_stock }}</p>
+            
+            <form @submit.prevent="submitRestock">
+                <div class="form-group">
+                    <label>Add Quantity (Stock In)</label>
+                    <input type="number" v-model="restockItem.add_quantity" class="glass-input" min="1" required />
+                </div>
+                <div class="modal-actions">
+                    <button type="button" @click="showRestockModal = false" class="btn-danger">Cancel</button>
+                    <button type="submit" class="btn-primary">Update Stock</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div v-if="showEditModal" class="modal-overlay">
+      <div class="modal glass-panel">
+        <h2>Edit Product</h2>
+        <form @submit.prevent="handleEditProduct">
+            <div class="form-group">
+                <label>Name</label>
+                <input v-model="editItem.name" class="glass-input" required />
+            </div>
+            <div class="form-group">
+                <label>SKU</label>
+                <input v-model="editItem.sku" class="glass-input" required />
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select v-model="editItem.category_id" class="glass-input" required>
+                    <option v-for="cat in productStore.categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                </select>
+            </div>
+            <div class="form-cols">
+                <div class="form-group">
+                    <label>Price</label>
+                    <input type="number" step="0.01" v-model="editItem.price" class="glass-input" required />
+                </div>
+                <div class="form-group">
+                    <label>Stock Warning Limit</label>
+                    <input type="number" v-model="editItem.low_stock_threshold" class="glass-input" required />
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" @click="showEditModal = false" class="btn-danger">Cancel</button>
+                <button type="submit" class="btn-primary">Update Product</button>
             </div>
         </form>
       </div>
@@ -208,4 +360,6 @@ th {
 select.glass-input option {
     background: #1e293b;
 }
+.small { padding: 4px 8px; font-size: 0.8rem; margin-right: 5px; }
+.alert-icon { margin-left: 5px; font-size: 0.8rem; }
 </style>

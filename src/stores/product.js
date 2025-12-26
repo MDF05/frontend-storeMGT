@@ -14,7 +14,8 @@ export const useProductStore = defineStore('product', {
         async fetchProducts() {
             this.loading = true
             try {
-                const response = await axios.get(API_URL)
+                // Append slash to avoid 308 redirect
+                const response = await axios.get(`${API_URL}/`)
                 this.products = response.data
             } catch (err) {
                 this.error = err.message
@@ -32,8 +33,22 @@ export const useProductStore = defineStore('product', {
         },
         async addProduct(productData) {
             try {
-                const response = await axios.post(API_URL, productData)
+                // Append slash to avoid 308 redirect
+                const response = await axios.post(`${API_URL}/`, productData)
                 this.products.push(response.data)
+                return response.data
+            } catch (err) {
+                this.error = err.message
+                throw err
+            }
+        },
+        async updateProduct(id, data) {
+            try {
+                const response = await axios.put(`${API_URL}/${id}`, data)
+                const index = this.products.findIndex(p => p.id === id)
+                if (index !== -1) {
+                    this.products[index] = response.data
+                }
                 return response.data
             } catch (err) {
                 this.error = err.message

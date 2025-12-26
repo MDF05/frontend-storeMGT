@@ -14,7 +14,7 @@ const showSidebar = computed(() => !['login', 'register'].includes(route.name))
 
 <template>
   <div class="app-container ">
-    <main class="main-content" :style="{ gridTemplateColumns: gridColumns }">
+    <main class="main-content" :style="{ gridTemplateColumns: showSidebar ? '20% 80%' : '100%' }">
       <nav v-if="!['login', 'register'].includes(route.name)" class="sidebar glass-panel">
         <div class="logo">
           <h2>Store<span class="accent">MGT</span></h2>
@@ -32,6 +32,12 @@ const showSidebar = computed(() => !['login', 'register'].includes(route.name))
           </RouterLink>
           <RouterLink to="/customers" class="nav-link" active-class="active">
             <span>👥</span> Customers
+          </RouterLink>
+          <RouterLink to="/transactions" class="nav-link" active-class="active">
+            <span>🧾</span> Transactions
+          </RouterLink>
+          <RouterLink to="/settings" class="nav-link" active-class="active">
+            <span>⚙️</span> Settings
           </RouterLink>
 
           <div class="divider"></div>

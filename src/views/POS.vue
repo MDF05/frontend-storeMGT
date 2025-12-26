@@ -98,6 +98,10 @@ const processSale = async () => {
         alert('Transaction Failed: ' + (err.response?.data?.error || err.message));
     }
 };
+
+const formatCurrency = (value) => {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(value);
+};
 </script>
 
 <template>
@@ -114,14 +118,25 @@ const processSale = async () => {
             :key="product.id" 
             class="product-card glass-panel"
             @click="addToCart(product)"
-            :class="{'out-of-stock': product.stock_quantity <= 0}"
+            :class="{
+                'out-of-stock': product.stock_quantity <= 0,
+                'high-stock': product.stock_quantity > 50,
+                'low-stock': product.stock_quantity <= (product.low_stock_threshold || 10) && product.stock_quantity > 0
+            }"
         >
           <div class="product-info">
             <h3>{{ product.name }}</h3>
             <p class="sku">{{ product.sku }}</p>
-            <div class="price-stock">
-                <span class="price">${{ product.price }}</span>
-                <span class="stock">Stats: {{ product.stock_quantity }}</span>
+            
+            <div class="stats-row">
+                <div class="stat-item price-tag">
+                    <span class="icon">🏷️</span>
+                    <span>{{ formatCurrency(product.price) }}</span>
+                </div>
+                <div class="stat-item stock-tag">
+                    <span class="icon">📦</span>
+                    <span>{{ product.stock_quantity }}</span>
+                </div>
             </div>
           </div>
         </div>
@@ -136,7 +151,7 @@ const processSale = async () => {
         <div v-for="(item, index) in cart" :key="item.product_id" class="cart-item">
             <div class="item-details">
                 <h4>{{ item.name }}</h4>
-                <p>${{ item.price }} x {{ item.quantity }}</p>
+                <p>{{ formatCurrency(item.price) }} x {{ item.quantity }}</p>
             </div>
             <div class="item-actions">
                 <button @click="removeFromCart(index)" class="btn-danger small">x</button>
@@ -150,7 +165,7 @@ const processSale = async () => {
       <div class="cart-footer">
         <div class="total">
             <span>Total:</span>
-            <span>${{ cartTotal }}</span>
+            <span>{{ formatCurrency(cartTotal) }}</span>
         </div>
         <button class="btn-primary checkout-btn" @click="openCheckout" :disabled="cart.length === 0">
             Post / Checkout
@@ -168,13 +183,14 @@ const processSale = async () => {
                     <select v-model="selectedCustomerId" class="glass-input">
                         <option value="">Guest / Walk-in</option>
                         <option v-for="c in customers" :key="c.id" :value="c.id">
-                            {{ c.name }} (Debt: ${{ c.total_debt || 0 }})
+
+                            {{ c.name }} (Debt: {{ formatCurrency(c.total_debt || 0) }})
                         </option>
                     </select>
                 </div>
                 
                 <div class="summary-row">
-                    <h3>Total: ${{ cartTotal }}</h3>
+                    <h3>Total: {{ formatCurrency(cartTotal) }}</h3>
                 </div>
 
                 <div class="form-group">
@@ -183,7 +199,7 @@ const processSale = async () => {
                 </div>
 
                 <div class="debt-alert" v-if="parseFloat(cartTotal) - parseFloat(paidAmount) > 0.01">
-                    <p class="warning">⚠️ Remaining ${{ (parseFloat(cartTotal) - parseFloat(paidAmount)).toFixed(2) }} will be recorded as DEBT.</p>
+                    <p class="warning">⚠️ Remaining {{ formatCurrency(parseFloat(cartTotal) - parseFloat(paidAmount)) }} will be recorded as DEBT.</p>
                 </div>
 
                 <div class="modal-actions">
@@ -218,27 +234,59 @@ const processSale = async () => {
 .product-card {
     padding: 1rem;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: all 0.2s ease;
     border: 1px solid transparent;
+    position: relative;
+    overflow: hidden;
 }
 .product-card:hover {
     transform: translateY(-5px);
     border-color: var(--primary);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 }
 .product-card.out-of-stock {
-    opacity: 0.5;
+    opacity: 0.6;
     pointer-events: none;
+    filter: grayscale(1);
+    border: 1px solid var(--text-muted);
 }
-.product-info h3 { margin: 0 0 0.5rem 0; font-size: 1.1rem; }
-.sku { font-size: 0.8rem; color: var(--text-muted); }
-.price-stock {
+.product-card.high-stock {
+    border-left: 4px solid var(--success, #10b981);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(255,255,255,0) 100%);
+}
+.product-card.low-stock {
+    border-left: 4px solid var(--accent, #f59e0b);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(255,255,255,0) 100%);
+}
+
+.product-info h3 { 
+    margin: 0 0 0.2rem 0; 
+    font-size: 1rem; 
+    font-weight: 700; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+}
+.sku { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.8rem; }
+
+.stats-row {
     display: flex;
     justify-content: space-between;
-    margin-top: 1rem;
+    align-items: center;
+    background: rgba(0,0,0,0.2);
+    padding: 0.5rem;
+    border-radius: 8px;
+}
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.9rem;
     font-weight: 600;
 }
-.price { color: var(--primary); }
-.stock { color: var(--secondary); font-size: 0.9rem; }
+.price-tag { color: var(--primary); }
+.stock-tag { color: var(--text-main); }
+.icon { font-size: 1rem; }
 
 /* Cart */
 .cart-section {
