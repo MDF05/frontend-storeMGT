@@ -305,4 +305,17 @@ th { font-weight: 600; color: var(--text-muted); }
 .wide-modal { width: 600px; }
 .history-item { padding: 0.5rem; border-bottom: 1px solid var(--glass-border); }
 .history-item .row { display: flex; justify-content: space-between; }
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+    overflow-x: hidden;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .header-actions { width: 100%; overflow-x: auto; justify-content: flex-start; padding-bottom: 5px; }
+  .header-actions button { white-space: nowrap; width: 100%; height: max-content; padding: 5px 10px; }
+}
 </style>

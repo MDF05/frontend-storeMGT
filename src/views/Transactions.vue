@@ -115,4 +115,12 @@ onMounted(async () => {
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--glass-border); color: var(--text-main); }
 .text-center { text-align: center; }
+
+@media (max-width: 768px) { 
+    .header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}
+
 </style>

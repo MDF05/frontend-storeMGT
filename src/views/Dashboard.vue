@@ -118,6 +118,11 @@ const exportInventoryReport = () => {
 </template>
 
 <style scoped>
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
 
 .charts-section {
     margin-top: 2rem;
@@ -163,5 +168,17 @@ const exportInventoryReport = () => {
 .p-stock.red { color: var(--accent); font-weight: 800; font-size: 1.1rem; }
 .p-limit { font-size: 0.8rem; color: var(--text-muted); }
 .good-state { color: var(--success); font-weight: bold; padding: 1rem; text-align: center; background: rgba(16, 185, 129, 0.1); border-radius: 8px;}
+
+@media (max-width: 768px) { 
+    .report-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .header-actions {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}
 
 </style>

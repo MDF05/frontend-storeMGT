@@ -146,9 +146,19 @@ const formatCurrency = (value) => {
       </div>
     </div>
 
+    <!-- Mobile Cart Toggle -->
+    <button class="mobile-cart-toggle btn-primary" @click="showCart = !showCart" v-if="cart.length > 0">
+        <span>🛒 {{ cart.length }} Items</span>
+        <span>{{ formatCurrency(cartTotal) }}</span>
+        <span class="toggle-icon">{{ showCart ? '⬇️' : '⬆️' }}</span>
+    </button>
+
     <!-- Cart -->
-    <div class="cart-section glass-panel">
-      <h2>Current Order</h2>
+    <div class="cart-section glass-panel" :class="{ 'mobile-open': showCart }">
+      <div class="cart-header-mobile">
+          <h2>Current Order</h2>
+          <button class="close-mobile-cart" @click="showCart = false">✕</button>
+      </div>
       
       <div class="cart-items">
         <div v-for="(item, index) in cart" :key="item.product_id" class="cart-item">
@@ -236,7 +246,7 @@ const formatCurrency = (value) => {
 }
 .products-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 1rem;
     padding-bottom: 2rem;
 }
@@ -379,5 +389,74 @@ const formatCurrency = (value) => {
 select.glass-input option {
     background: #1e293b;
     color: white;
+}
+
+/* Mobile Specifics */
+.mobile-cart-toggle {
+    display: none;
+}
+.cart-header-mobile {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .pos-container {
+        padding-bottom: 80px; /* Space for floating button */
+    }
+
+    .mobile-cart-toggle {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: fixed;
+        bottom: 1rem;
+        left: 1rem;
+        right: 1rem;
+        z-index: 50;
+        padding: 1rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+    
+    .cart-section {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 80vh; /* Takes up 80% screen height when open */
+        width: 100%;
+        background: #0f172a; /* Solid background */
+        z-index: 60;
+        border-radius: 20px 20px 0 0;
+        transform: translateY(100%);
+        transition: transform 0.3s ease-in-out;
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+    }
+    
+    .cart-section.mobile-open {
+        transform: translateY(0);
+    }
+    
+    .cart-header-mobile {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .cart-header-mobile h2 {
+        margin: 0;
+        font-size: 1.2rem;
+    }
+    
+    .close-mobile-cart {
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+    }
 }
 </style>

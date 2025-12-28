@@ -1,23 +1,37 @@
 <script setup>
 import { RouterView, RouterLink, useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth'
-import { computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 const authStore = useAuthStore()
 const route = useRoute()
+const showMobileMenu = ref(false)
 
+const toggleMobileMenu = () => {
+  showMobileMenu.value = !showMobileMenu.value
+}
 
-
+// Close mobile menu on route change
+watch(() => route.path, () => {
+  showMobileMenu.value = false
+})
 
 const showSidebar = computed(() => !['login', 'register'].includes(route.name))
 </script>
 
 <template>
-  <div class="app-container ">
-    <main class="main-content" :style="{ gridTemplateColumns: showSidebar ? '20% 80%' : '100%' }">
-      <nav v-if="!['login', 'register'].includes(route.name)" class="sidebar glass-panel">
-        <div class="logo">
-          <h2>Store<span class="accent">MGT</span></h2>
+  <div class="app-container">
+    <button v-if="showSidebar" class="mobile-menu-btn" @click="toggleMobileMenu">
+      ☰
+    </button>
+
+    <main class="main-content" :class="{ 'with-sidebar': showSidebar }">
+      <nav v-if="showSidebar" class="sidebar glass-panel" :class="{ 'open': showMobileMenu }">
+        <div class="logo-row">
+            <div class="logo">
+            <h2>Store<span class="accent">MGT</span></h2>
+            </div>
+            <button class="close-menu-btn" @click="showMobileMenu = false">✕</button>
         </div>
 
         <div class="nav-links">
@@ -57,6 +71,50 @@ const showSidebar = computed(() => !['login', 'register'].includes(route.name))
 </template>
 
 <style scoped>
+.mobile-menu-btn {
+  display: none;
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 50;
+  background: var(--glass-card);
+  border: 1px solid var(--glass-border);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.close-menu-btn {
+    display: none;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.logo-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+@media (max-width: 1024px) {
+  .mobile-menu-btn {
+    display: block;
+  }
+  
+  .close-menu-btn {
+      display: block;
+  }
+  
+  .main-content {
+      display: block !important; /* Reset grid */
+  }
+}
+
 .logo {
   padding: 0 1rem;
   margin-bottom: 2rem;

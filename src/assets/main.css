@@ -125,8 +125,13 @@ h6 {
 }
 
 .main-content {
-  display: grid;
-  padding: 2rem;
+    display: block;
+    padding: 2rem;
+}
+
+.main-content.with-sidebar {
+    display: grid;
+    grid-template-columns: 260px 1fr;
 }
 
 /* Navigation */
@@ -189,4 +194,86 @@ h6 {
 .logout-btn:hover {
     background: rgba(244, 63, 94, 0.1);
     color: var(--accent);
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1024px) {
+    .app-container {
+        grid-template-columns: 100% !important;
+        /* Force single column on tablet/mobile */
+    }
+
+    .sidebar {
+        position: fixed;
+        left: -280px;
+        top: 0;
+        bottom: 0;
+        transition: transform 0.3s ease;
+        background: var(--bg-dark);
+        /* Ensure background is solid */
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+    }
+
+    .sidebar.open {
+        transform: translateX(280px);
+    }
+
+    .main-content {
+        padding: 1rem;
+        padding-top: 5rem;
+        /* Space for hamburger menu */
+        width: 100%;
+        margin-left: 0 !important;
+        /* Override any grid checks */
+    }
+
+    .header h1 {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .form-cols {
+        grid-template-columns: 1fr;
+        /* Stack form columns */
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+        /* Stack stats cards */
+    }
+
+    .modal {
+        width: 95%;
+        padding: 1rem;
+    }
+
+    .wide-modal {
+        width: 95%;
+    }
+
+    /* Make tables scrollable horizontally */
+    .table-container {
+        overflow-x: auto;
+    }
+
+    .actions {
+        flex-direction: column;
+    }
+
+    .actions button {
+        width: 100%;
+    }
+
+    /* POS Specific */
+    .pos-container {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .cart-section {
+        width: 100%;
+        height: 500px;
+        /* Fixed height for cart on mobile */
+    }
 }

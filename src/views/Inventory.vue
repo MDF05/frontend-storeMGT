@@ -1,4 +1,4 @@
-<script>
+<script setup>
 import { onMounted, ref, computed } from 'vue';
 import { useProductStore } from '../stores/product';
 import { useSettingsStore } from '../stores/settings';
@@ -231,14 +231,13 @@ const submitRestock = async () => {
                         <td>{{ product.name }}</td>
                         <td>{{ product.sku }}</td>
                         <td>{{ product.category_name }}</td>
-                        <td>{{ product.category_name }}</td>
                         <td>{{ formatCurrency(product.price) }}</td>
                         <td :class="{ 'low-stock': product.stock_quantity <= (product.low_stock_threshold || 10) }">
                             {{ product.stock_quantity }}
                             <span v-if="product.stock_quantity <= (product.low_stock_threshold || 10)"
                                 class="alert-icon">⚠️</span>
                         </td>
-                        <td>
+                        <td class="inventory-table-actions">
                             <button class="small btn-primary" @click="openEdit(product)">Edit</button>
                             <button class="small btn-warning" @click="openRestock(product)">Restock</button>
                             <button class="small btn-secondary text-black"
@@ -634,5 +633,26 @@ select.glass-input option {
 .bulk-container {
     max-height: 60vh;
     overflow-y: auto;
+}
+
+@media (max-width: 768px) { 
+    .header {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .header .actions {
+        display: flex;
+        gap: 1rem;
+        overflow-x: hidden;
+        flex-wrap: wrap;
+        flex-direction: row;
+    }
+
+    .inventory-table-actions {
+        display: flex;
+        gap: 1rem;
+    }
 }
 </style>
