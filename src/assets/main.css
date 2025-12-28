@@ -132,6 +132,8 @@ h6 {
 .main-content.with-sidebar {
     display: grid;
     grid-template-columns: 260px 1fr;
+    gap: 1rem;
+    /* Added gap between sidebar and content */
 }
 
 /* Navigation */
