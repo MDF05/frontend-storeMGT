@@ -309,7 +309,7 @@ const formatCurrency = (value) => {
 
 /* Cart */
 .cart-section {
-    width: 350px;
+    width: 400px;
     display: flex;
     flex-direction: column;
     padding: 1.5rem;

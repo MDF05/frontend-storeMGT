@@ -169,7 +169,16 @@ const handleAddCategory = async () => {
 
 const deleteProduct = async (id) => {
     if (confirm('Are you sure?')) {
-        await productStore.deleteProduct(id);
+        try {
+            await productStore.deleteProduct(id);
+            // If store throws, we catch it. If store swallows but sets error property, check it:
+            if (productStore.error) {
+                 alert('Failed to delete: ' + productStore.error);
+                 productStore.error = null; // Clear error
+            }
+        } catch (e) {
+             alert('Failed to delete: ' + e.message);
+        }
     }
 };
 
