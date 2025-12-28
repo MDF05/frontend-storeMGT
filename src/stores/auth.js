@@ -1,8 +1,6 @@
 import { defineStore } from 'pinia'
-import axios from 'axios'
+import api from '../utils/api'
 import router from '../router'
-
-const API_URL = 'http://localhost:5000/api/auth'
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
@@ -16,7 +14,7 @@ export const useAuthStore = defineStore('auth', {
     actions: {
         async login(username, password) {
             try {
-                const response = await axios.post(`${API_URL}/login`, { username, password })
+                const response = await api.post('/auth/login', { username, password })
                 const { token, user } = response.data
 
                 this.token = token
@@ -25,8 +23,7 @@ export const useAuthStore = defineStore('auth', {
                 localStorage.setItem('token', token)
                 localStorage.setItem('user', JSON.stringify(user))
 
-                // Configure axios global header
-                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+                // No need to set global header manually, interceptor handles it
 
                 router.push('/')
             } catch (err) {
@@ -36,7 +33,7 @@ export const useAuthStore = defineStore('auth', {
         },
         async register(username, email, password) {
             try {
-                await axios.post(`${API_URL}/register`, { username, email, password })
+                await api.post('/auth/register', { username, email, password })
                 // Auto login or redirect to login? Let's redirect to login with a message or just login directly using the logic above?
                 // For simplicity, let's just return true so the component can redirect.
                 return true
@@ -51,7 +48,7 @@ export const useAuthStore = defineStore('auth', {
             this.error = null
             localStorage.removeItem('token')
             localStorage.removeItem('user')
-            delete axios.defaults.headers.common['Authorization']
+            // No need to clear global header manually
             router.push('/login')
         }
     }

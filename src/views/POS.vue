@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue';
 import { useProductStore } from '../stores/product';
-import axios from 'axios';
+import api from '../utils/api';
 
 const productStore = useProductStore();
 const cart = ref([]);
@@ -18,7 +18,7 @@ onMounted(async () => {
 
 const fetchCustomers = async () => {
     try {
-        const res = await axios.get('http://localhost:5000/api/customers/');
+        const res = await api.get('/customers/');
         customers.value = res.data;
     } catch (err) {
         console.error("Failed to fetch customers", err);
@@ -79,7 +79,7 @@ const processSale = async () => {
     if (debt > 0.01) method = 'debt';
 
     try {
-        await axios.post('http://localhost:5000/api/sales/', {
+        await api.post('/sales/', {
             items: cart.value.map(item => ({
                 product_id: item.product_id,
                 quantity: item.quantity

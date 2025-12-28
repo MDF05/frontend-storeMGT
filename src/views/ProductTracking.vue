@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useProductStore } from '../stores/product';
-import axios from 'axios';
+import api from '../utils/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useSettingsStore } from '../stores/settings';
@@ -52,7 +52,7 @@ const selectProduct = async (product) => {
 const fetchHistory = async (id) => {
     loading.value = true;
     try {
-        const res = await axios.get(`http://localhost:5000/api/history/product/${id}`);
+        const res = await api.get(`/history/product/${id}`);
         history.value = res.data;
     } catch (e) {
         console.error(e);

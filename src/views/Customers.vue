@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue';
-import axios from 'axios';
+import api from '../utils/api';
 import { useSettingsStore } from '../stores/settings';
 import { exportToPDF } from '../utils/pdfExport';
 
@@ -12,7 +12,7 @@ const newCustomer = ref({ name: '', email: '', phone: '' });
 
 const fetchCustomers = async () => {
     try {
-        const res = await axios.get('http://localhost:5000/api/customers/');
+        const res = await api.get('/customers/');
         customers.value = res.data;
     } catch (err) {
         console.error(err);
@@ -21,7 +21,7 @@ const fetchCustomers = async () => {
 
 const addCustomer = async () => {
     try {
-        await axios.post('http://localhost:5000/api/customers/', newCustomer.value);
+        await api.post('/customers/', newCustomer.value);
         showModal.value = false;
         newCustomer.value = { name: '', email: '', phone: '' };
         fetchCustomers();
@@ -33,7 +33,7 @@ const addCustomer = async () => {
 const deleteCustomer = async (id) => {
     if(!confirm('Delete customer?')) return;
     try {
-        await axios.delete(`http://localhost:5000/api/customers/${id}`);
+        await api.delete(`/customers/${id}`);
         fetchCustomers();
     } catch (err) {
         console.error(err);
@@ -55,7 +55,7 @@ const openPayment = (c) => {
 
 const submitPayment = async () => {
     try {
-        await axios.post(`http://localhost:5000/api/customers/${selectedCustomer.value.id}/pay_debt`, {
+        await api.post(`/customers/${selectedCustomer.value.id}/pay_debt`, {
             amount: paymentAmount.value
         });
         alert('Payment Recorded');
@@ -104,7 +104,7 @@ const exportCustomers = () => {
 const viewHistory = async (c) => {
     selectedCustomer.value = c;
     try {
-        const res = await axios.get(`http://localhost:5000/api/customers/${c.id}/debt_history`);
+        const res = await api.get(`/customers/${c.id}/debt_history`);
         debtHistory.value = res.data;
         showHistoryModal.value = true;
     } catch (err) {
@@ -120,7 +120,7 @@ const openAdjustDebt = (c) => {
 
 const submitDebtAdjustment = async () => {
     try {
-        await axios.post(`http://localhost:5000/api/customers/${selectedCustomer.value.id}/adjust_debt`, {
+        await api.post(`/customers/${selectedCustomer.value.id}/adjust_debt`, {
             new_debt: debtAdjustment.value.amount,
             description: debtAdjustment.value.description
         });

@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue';
-import axios from 'axios';
+import api from '../utils/api';
 import { useSettingsStore } from '../stores/settings';
 import { exportToPDF } from '../utils/pdfExport';
 
@@ -11,7 +11,7 @@ const loading = ref(true);
 const fetchTransactions = async () => {
     loading.value = true;
     try {
-        const res = await axios.get('http://localhost:5000/api/sales/');
+        const res = await api.get('/sales/');
         transactions.value = res.data;
     } catch (err) {
         console.error(err);

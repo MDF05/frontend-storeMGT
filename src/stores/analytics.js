@@ -1,7 +1,5 @@
 import { defineStore } from 'pinia'
-import axios from 'axios'
-
-const API_URL = 'http://localhost:5000/api/analytics'
+import api from '../utils/api'
 
 export const useAnalyticsStore = defineStore('analytics', {
     state: () => ({
@@ -12,7 +10,7 @@ export const useAnalyticsStore = defineStore('analytics', {
     actions: {
         async fetchSummary() {
             try {
-                const response = await axios.get(`${API_URL}/summary`)
+                const response = await api.get('/analytics/summary')
                 this.summary = response.data
             } catch (error) {
                 console.error('Error fetching summary:', error)
@@ -20,7 +18,7 @@ export const useAnalyticsStore = defineStore('analytics', {
         },
         async fetchDailySales() {
             try {
-                const response = await axios.get(`${API_URL}/daily-sales`)
+                const response = await api.get('/analytics/daily-sales')
                 this.dailySales = response.data
             } catch (error) {
                 console.error('Error fetching daily sales:', error)

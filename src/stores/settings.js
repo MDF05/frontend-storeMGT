@@ -1,7 +1,5 @@
 import { defineStore } from 'pinia'
-import axios from 'axios'
-
-const API_URL = 'http://localhost:5000/api/settings'
+import api from '../utils/api'
 
 export const useSettingsStore = defineStore('settings', {
     state: () => ({
@@ -16,7 +14,7 @@ export const useSettingsStore = defineStore('settings', {
         async fetchSettings() {
             this.loading = true
             try {
-                const response = await axios.get(`${API_URL}/`)
+                const response = await api.get('/settings/')
                 this.storeName = response.data.store_name
                 this.storeAddress = response.data.store_address
                 this.defaultLowStockThreshold = response.data.default_low_stock_threshold
@@ -30,7 +28,7 @@ export const useSettingsStore = defineStore('settings', {
 
         async updateSettings(settings) {
             try {
-                const response = await axios.put(`${API_URL}/`, {
+                const response = await api.put('/settings/', {
                     store_name: settings.storeName,
                     store_address: settings.storeAddress,
                     default_low_stock_threshold: settings.defaultLowStockThreshold,

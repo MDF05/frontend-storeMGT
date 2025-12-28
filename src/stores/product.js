@@ -1,7 +1,5 @@
 import { defineStore } from 'pinia'
-import axios from 'axios'
-
-const API_URL = 'http://localhost:5000/api/products'
+import api from '../utils/api'
 
 export const useProductStore = defineStore('product', {
     state: () => ({
@@ -15,7 +13,7 @@ export const useProductStore = defineStore('product', {
             this.loading = true
             try {
                 // Append slash to avoid 308 redirect
-                const response = await axios.get(`${API_URL}/`)
+                const response = await api.get('/products/')
                 this.products = response.data
             } catch (err) {
                 this.error = err.message
@@ -25,7 +23,7 @@ export const useProductStore = defineStore('product', {
         },
         async fetchCategories() {
             try {
-                const response = await axios.get(`${API_URL}/categories`)
+                const response = await api.get('/products/categories')
                 this.categories = response.data
             } catch (err) {
                 console.error(err)
@@ -34,7 +32,7 @@ export const useProductStore = defineStore('product', {
         async addProduct(productData) {
             try {
                 // Append slash to avoid 308 redirect
-                const response = await axios.post(`${API_URL}/`, productData)
+                const response = await api.post('/products/', productData)
                 this.products.push(response.data)
                 return response.data
             } catch (err) {
@@ -44,7 +42,7 @@ export const useProductStore = defineStore('product', {
         },
         async addProductsBulk(productsArray) {
             try {
-                const response = await axios.post(`${API_URL}/bulk`, productsArray)
+                const response = await api.post('/products/bulk', productsArray)
                 this.products.push(...response.data)
                 return response.data
             } catch (err) {
@@ -54,7 +52,7 @@ export const useProductStore = defineStore('product', {
         },
         async updateProduct(id, data) {
             try {
-                const response = await axios.put(`${API_URL}/${id}`, data)
+                const response = await api.put(`/products/${id}`, data)
                 const index = this.products.findIndex(p => p.id === id)
                 if (index !== -1) {
                     this.products[index] = response.data
@@ -67,7 +65,7 @@ export const useProductStore = defineStore('product', {
         },
         async deleteProduct(id) {
             try {
-                await axios.delete(`${API_URL}/${id}`)
+                await api.delete(`/products/${id}`)
                 this.products = this.products.filter(p => p.id !== id)
             } catch (err) {
                 this.error = err.message
@@ -75,7 +73,7 @@ export const useProductStore = defineStore('product', {
         },
         async addCategory(name) {
             try {
-                const response = await axios.post(`${API_URL}/categories`, { name })
+                const response = await api.post('/products/categories', { name })
                 this.categories.push(response.data)
             } catch (err) {
                 this.error = err.message
