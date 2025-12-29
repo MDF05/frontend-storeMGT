@@ -172,12 +172,14 @@ const deleteProduct = async (id) => {
         try {
             await productStore.deleteProduct(id);
             // If store throws, we catch it. If store swallows but sets error property, check it:
+
+
             if (productStore.error) {
-                 alert('Failed to delete: ' + productStore.error);
-                 productStore.error = null; // Clear error
+                alert('Failed to delete: ' + productStore.error);
+                productStore.error = null; // Clear error
             }
         } catch (e) {
-             alert('Failed to delete: ' + e.message);
+            alert('Failed to delete: ' + e.message);
         }
     }
 };
@@ -644,7 +646,7 @@ select.glass-input option {
     overflow-y: auto;
 }
 
-@media (max-width: 768px) { 
+@media (max-width: 768px) {
     .header {
         display: flex;
         flex-direction: column;
